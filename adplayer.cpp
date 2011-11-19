@@ -18,16 +18,16 @@
  *
  */
 
-#include <stdint.h>
+#include "adplayer.h"
+
 #include <stdexcept>
 #include <string>
 #include <cstdio>
 #include <cstdlib>
 #include <iostream>
-#include <vector>
 #include <iterator>
+#include <algorithm>
 
-typedef std::vector<uint8_t> FileBuffer;
 void loadADFile(const std::string &filename, FileBuffer &data);
 void validateADFile(FileBuffer &data);
 
@@ -41,11 +41,15 @@ int main(int argc, char *argv[]) {
 		std::string filename(argv[1]);
 		loadADFile(filename, data);
 		validateADFile(data);
+
+		if (SDL_Init(SDL_INIT_AUDIO) == -1)
+			throw std::runtime_error("Could not initialize SDL audio subsystem");
 	} catch (const std::exception &e) {
 		std::cerr << "ERROR: " << e.what() << std::endl;
 		return -1;
 	}
 
+	SDL_Quit();
 	return EXIT_SUCCESS;
 }
 
@@ -98,5 +102,79 @@ void validateADFile(FileBuffer &data) {
 		}
 	} catch (const std::range_error &e) {
 		throw std::runtime_error("Premature end of file");
+	}
+}
+
+Player::Player(const FileBuffer &file)
+    : _file(file), _emulator(new DBOPL::Chip()), _obtained(),
+      _callbackFrequency(472), _samplesPerCallback(),
+      _samplesPerCallbackRemainder(), _samplesTillCallback(),
+      _samplesTillCallbackRemainder() {
+	DBOPL::InitTables();
+
+	SDL_AudioSpec desired;
+	memset(&desired, 0, sizeof(desired));
+	desired.freq = 44100;
+	desired.format = AUDIO_S16SYS;
+	desired.channels = 1;
+	desired.samples = 8192;
+	desired.callback = Player::readSamples;
+	desired.userdata = static_cast<void *>(this);
+
+	if (SDL_OpenAudio(&desired, &_obtained) < 0)
+		throw std::runtime_error("Could not open audio device");
+	if (_obtained.format != AUDIO_S16SYS) {
+		SDL_CloseAudio();
+		throw std::runtime_error("Could not obtain S16SYS audio format");
+	}
+
+	_emulator->Setup(_obtained.freq);
+
+	_samplesPerCallback = _obtained.freq / _callbackFrequency;
+	_samplesPerCallbackRemainder = _obtained.freq % _callbackFrequency;
+
+	SDL_PauseAudio(0);
+}
+
+Player::~Player() {
+	SDL_LockAudio();
+	SDL_PauseAudio(1);
+	SDL_CloseAudio();
+	SDL_UnlockAudio();
+}
+
+void Player::writeReg(uint16_t reg, uint8_t data) {
+	_emulator->WriteReg(reg, data);
+}
+
+void Player::readSamples(void *userdata, Uint8 *buffer, int len) {
+	Player *player = static_cast<Player *>(userdata);
+	int16_t *dst = reinterpret_cast<int16_t *>(buffer);
+
+	const int bufferLength = 512;
+	int32_t tempBuffer[bufferLength];
+
+	len /= 2;
+
+	while (len > 0) {
+		if (!player->_samplesTillCallback) {
+			player->callback();
+			player->_samplesTillCallback = player->_samplesPerCallback;
+			player->_samplesTillCallbackRemainder += player->_samplesPerCallbackRemainder;
+			if (player->_samplesTillCallbackRemainder >= player->_callbackFrequency) {
+				++player->_samplesTillCallback;
+				player->_samplesTillCallbackRemainder -= player->_callbackFrequency;
+			}
+		}
+
+		const int samplesToRead = std::min(std::min(len, bufferLength), player->_samplesTillCallback);
+		player->_emulator->GenerateBlock2(samplesToRead, tempBuffer);
+
+		const int32_t *src = tempBuffer;
+		for (int i = 0; i < samplesToRead; ++i)
+			*dst++ = *src++;
+
+		len -= samplesToRead;
+		player->_samplesTillCallback -= samplesToRead;
 	}
 }

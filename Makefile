@@ -1,3 +1,5 @@
+SDL_CFLAGS = `sdl-config --cflags`
+SDL_LIBS = `sdl-config --libs`
 CXXFLAGS:=-pedantic-errors \
 		  -g \
 		  -Wall \
@@ -10,9 +12,10 @@ CXXFLAGS:=-pedantic-errors \
 		  -Wformat=2 \
 		  -Winit-self \
 		  -Wfloat-equal \
-		  -Wconversion
+		  -Wconversion \
+		  $(SDL_CFLAGS)
 CPPFLAGS:=-I.
-LDFLAGS:=-g
+LDFLAGS:=-g $(SDL_LIBS)
 CXX:=g++
 DEPDIR:=.deps
 
