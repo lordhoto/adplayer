@@ -17,7 +17,8 @@ CXX:=g++
 DEPDIR:=.deps
 
 OBJS := \
-		adplayer.o
+		adplayer.o \
+		dbopl.o
 
 DEPDIRS = $(addsuffix $(DEPDIR),$(sort $(dir $(OBJS))))
 
