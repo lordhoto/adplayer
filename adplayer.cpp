@@ -19,6 +19,7 @@
  */
 
 #include "adplayer.h"
+#include "music.h"
 
 #include <stdexcept>
 #include <string>
@@ -44,6 +45,13 @@ int main(int argc, char *argv[]) {
 
 		if (SDL_Init(SDL_INIT_AUDIO) == -1)
 			throw std::runtime_error("Could not initialize SDL audio subsystem");
+
+		if (data.at(2) == 0x80) {
+			MusicPlayer player(data);
+			player.startPlayback();
+			while (player.isPlaying())
+				SDL_Delay(100);
+		}
 	} catch (const std::exception &e) {
 		std::cerr << "ERROR: " << e.what() << std::endl;
 		return -1;
@@ -130,10 +138,13 @@ Player::Player(const FileBuffer &file)
 
 	_emulator->Setup(_obtained.freq);
 
+	writeReg(0x01, 0x00);
+	writeReg(0xBD, 0x00);
+	writeReg(0x08, 0x00);
+	writeReg(0x01, 0x20);
+
 	_samplesPerCallback = _obtained.freq / _callbackFrequency;
 	_samplesPerCallbackRemainder = _obtained.freq % _callbackFrequency;
-
-	SDL_PauseAudio(0);
 }
 
 Player::~Player() {
@@ -143,8 +154,16 @@ Player::~Player() {
 	SDL_UnlockAudio();
 }
 
+void Player::startPlayback() {
+	SDL_PauseAudio(0);
+}
+
 void Player::writeReg(uint16_t reg, uint8_t data) {
 	_emulator->WriteReg(reg, data);
+}
+
+uint16_t Player::readWord(const uint32_t offset) const {
+	return static_cast<uint16_t>(_file.at(offset) | (_file.at(offset + 1) << 8));
 }
 
 void Player::readSamples(void *userdata, Uint8 *buffer, int len) {

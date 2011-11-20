@@ -18,45 +18,44 @@
  *
  */
 
-#ifndef ADPLAYER_H
-#define ADPLAYER_H
+#ifndef MUSIC_H
+#define MUSIC_H
 
-#include <vector>
-#include <stdint.h>
-#include <boost/scoped_ptr.hpp>
-#include <SDL.h>
-#include "dbopl.h"
+#include "adplayer.h"
 
-typedef std::vector<uint8_t> FileBuffer;
-
-class Player {
+class MusicPlayer : public Player {
 public:
-	Player(const FileBuffer &file);
-	virtual ~Player();
+	MusicPlayer(const FileBuffer &file);
 
-	void startPlayback();
-
-	virtual bool isPlaying() const = 0;
+	virtual bool isPlaying() const;
 protected:
-	FileBuffer _file;
-
-	uint16_t readWord(const uint32_t offset) const;
-
-	virtual void callback() = 0;
-
-	void writeReg(uint16_t reg, uint8_t data);
+	virtual void callback();
 private:
-	typedef boost::scoped_ptr<DBOPL::Chip> ChipPtr;
-	ChipPtr _emulator;
-	SDL_AudioSpec _obtained;
+	void noteOff(uint8_t channel);
+	uint8_t findFreeChannel();
+	void setupChannel(uint8_t channel, uint16_t instrOffset);
+	void setupOperator(uint8_t opr, uint16_t &instrOffset);
+	void setupFrequency(uint8_t channel, int8_t frequency);
 
-	const int _callbackFrequency;
-	int32_t _samplesPerCallback;
-	int32_t _samplesPerCallbackRemainder;
-	int32_t _samplesTillCallback;
-	int32_t _samplesTillCallbackRemainder;
+	bool _isPlaying;
 
-	static void readSamples(void *userdata, Uint8 *buffer, int len);
+	uint8_t _musicTicks;
+	uint16_t _musicTimer;
+	bool _loopFlag;
+	uint16_t _musicLoopStart;
+	uint16_t _instrumentOffset[16];
+	uint8_t _channelLastEvent[9];
+	uint8_t _channelFrequency[9];
+	uint8_t _channelB0Reg[9];
+
+	uint8_t _mdvdrState;
+	uint8_t _voiceChannels;
+
+	uint16_t _curOffset;
+	uint16_t _nextEventTimer;
+
+	static const uint8_t _operatorOffsetTable[18];
+	static const uint16_t _noteFrequencies[12];
 };
 
 #endif
