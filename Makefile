@@ -12,7 +12,6 @@ CXXFLAGS:=-pedantic-errors \
 		  -Wformat=2 \
 		  -Winit-self \
 		  -Wfloat-equal \
-		  -Wconversion \
 		  $(SDL_CFLAGS)
 CPPFLAGS:=-I.
 LDFLAGS:=-g $(SDL_LIBS)
