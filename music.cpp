@@ -96,6 +96,7 @@ void MusicPlayer::callback() {
 				const uint16_t instrOffset = _instrumentOffset[command];
 				if (instrOffset) {
 					if (_file.at(instrOffset + 13) != 0) {
+						setupRhythm(_file[instrOffset + 13], instrOffset);
 					} else {
 						uint8_t channel = findFreeChannel();
 						if (channel != 0xFF) {
@@ -125,6 +126,13 @@ void MusicPlayer::callback() {
 					command -= 0x90;
 					const uint16_t instrOffset = _instrumentOffset[command];
 					if (instrOffset && _file.at(instrOffset + 13) != 0) {
+						const uint8_t rhythmInstr = _file[instrOffset + 13];
+						//if (rhythmInstr >= 6)
+						//	throw std::range_error("rhythmInstr >= 6");
+						if (rhythmInstr < 6) {
+							_mdvdrState &= _mdvdrTable[rhythmInstr] ^ 0xFF;
+							writeReg(0xBD, _mdvdrState);
+						}
 					}
 				}
 			}
@@ -198,6 +206,26 @@ void MusicPlayer::setupFrequency(uint8_t channel, int8_t frequency) {
 	writeReg(0xB0 + channel, octave);
 }
 
+void MusicPlayer::setupRhythm(uint8_t rhythmInstr, uint16_t instrOffset) {
+	if (rhythmInstr == 1) {
+		setupChannel(6, instrOffset);
+		writeReg(0xA6, _file.at(instrOffset++));
+		writeReg(0xB6, _file.at(instrOffset) & 0xDF);
+		_mdvdrState |= 0x10;
+		writeReg(0xBD, _mdvdrState);
+	} else if (rhythmInstr < 6) {
+		uint16_t secondOperatorOffset = instrOffset + 8;
+		setupOperator(_rhythmOperatorTable[rhythmInstr], secondOperatorOffset);
+		writeReg(0xA0 + _rhythmChannelTable[rhythmInstr], _file.at(instrOffset++));
+		writeReg(0xB0 + _rhythmChannelTable[rhythmInstr], _file.at(instrOffset++) & 0xDF);
+		writeReg(0xC0 + _rhythmChannelTable[rhythmInstr], _file.at(instrOffset));
+		_mdvdrState |= _mdvdrTable[rhythmInstr];
+		writeReg(0xBD, _mdvdrState);
+	} else {
+		// throw range error
+	}
+}
+
 const uint8_t MusicPlayer::_operatorOffsetTable[18] = {
 	 0,  3,  1,  4,
 	 2,  5,  8, 11,
@@ -210,4 +238,16 @@ const uint16_t MusicPlayer::_noteFrequencies[12] = {
 	0x200, 0x21E, 0x23F, 0x261,
 	0x285, 0x2AB, 0x2D4, 0x300,
 	0x32E, 0x35E, 0x390, 0x3C7
+};
+
+const uint8_t MusicPlayer::_mdvdrTable[6] = {
+	0x00, 0x10, 0x08, 0x04, 0x02, 0x01
+};
+
+const uint8_t MusicPlayer::_rhythmOperatorTable[6] = {
+	0x00, 0x00, 0x14, 0x12, 0x15, 0x11
+};
+
+const uint8_t MusicPlayer::_rhythmChannelTable[6] = {
+	0x00, 0x00, 0x07, 0x08, 0x08, 0x07
 };
