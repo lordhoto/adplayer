@@ -171,21 +171,6 @@ uint8_t MusicPlayer::findFreeChannel() {
 	return 0xFF;
 }
 
-void MusicPlayer::setupChannel(uint8_t channel, uint16_t instrOffset) {
-	instrOffset += 2;
-	writeReg(0xC0 + channel, _file.at(instrOffset++));
-	setupOperator(_operatorOffsetTable[channel * 2 + 0], instrOffset);
-	setupOperator(_operatorOffsetTable[channel * 2 + 1], instrOffset);
-}
-
-void MusicPlayer::setupOperator(uint8_t opr, uint16_t &instrOffset) {
-	writeReg(0x20 + opr, _file.at(instrOffset++));
-	writeReg(0x40 + opr, _file.at(instrOffset++));
-	writeReg(0x60 + opr, _file.at(instrOffset++));
-	writeReg(0x80 + opr, _file.at(instrOffset++));
-	writeReg(0xE0 + opr, _file.at(instrOffset++));
-}
-
 void MusicPlayer::setupFrequency(uint8_t channel, int8_t frequency) {
 	frequency -= 31;
 	if (frequency < 0)
@@ -225,14 +210,6 @@ void MusicPlayer::setupRhythm(uint8_t rhythmInstr, uint16_t instrOffset) {
 		// throw range error
 	}
 }
-
-const uint8_t MusicPlayer::_operatorOffsetTable[18] = {
-	 0,  3,  1,  4,
-	 2,  5,  8, 11,
-	 9, 12, 10, 13,
-	16, 19, 17, 20,
-	18, 21
-};
 
 const uint16_t MusicPlayer::_noteFrequencies[12] = {
 	0x200, 0x21E, 0x23F, 0x261,

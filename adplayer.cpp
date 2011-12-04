@@ -20,6 +20,7 @@
 
 #include "adplayer.h"
 #include "music.h"
+#include "sfx.h"
 
 #include <stdexcept>
 #include <string>
@@ -48,6 +49,11 @@ int main(int argc, char *argv[]) {
 
 		if (data.at(2) == 0x80) {
 			MusicPlayer player(data);
+			player.startPlayback();
+			while (player.isPlaying())
+				SDL_Delay(100);
+		} else {
+			SfxPlayer player(data);
 			player.startPlayback();
 			while (player.isPlaying())
 				SDL_Delay(100);
@@ -159,6 +165,7 @@ void Player::startPlayback() {
 }
 
 void Player::writeReg(uint16_t reg, uint8_t data) {
+	_registerBackUpTable[reg] = data;
 	_emulator->WriteReg(reg, data);
 }
 
@@ -197,3 +204,27 @@ void Player::readSamples(void *userdata, Uint8 *buffer, int len) {
 		player->_samplesTillCallback -= samplesToRead;
 	}
 }
+
+void Player::setupChannel(uint8_t channel, uint16_t instrOffset) {
+	instrOffset += 2;
+	writeReg(0xC0 + channel, _file.at(instrOffset++));
+	setupOperator(_operatorOffsetTable[channel * 2 + 0], instrOffset);
+	setupOperator(_operatorOffsetTable[channel * 2 + 1], instrOffset);
+}
+
+void Player::setupOperator(uint8_t opr, uint16_t &instrOffset) {
+	writeReg(0x20 + opr, _file.at(instrOffset++));
+	writeReg(0x40 + opr, _file.at(instrOffset++));
+	writeReg(0x60 + opr, _file.at(instrOffset++));
+	writeReg(0x80 + opr, _file.at(instrOffset++));
+	writeReg(0xE0 + opr, _file.at(instrOffset++));
+}
+
+const uint8_t Player::_operatorOffsetTable[18] = {
+	 0,  3,  1,  4,
+	 2,  5,  8, 11,
+	 9, 12, 10, 13,
+	16, 19, 17, 20,
+	18, 21
+};
+

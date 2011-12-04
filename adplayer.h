@@ -45,6 +45,12 @@ protected:
 	virtual void callback() = 0;
 
 	void writeReg(uint16_t reg, uint8_t data);
+	uint8_t readReg(uint16_t reg) const { return _registerBackUpTable[reg]; }
+
+	void setupChannel(uint8_t channel, uint16_t instrOffset);
+	void setupOperator(uint8_t opr, uint16_t &instrOffset);
+
+	static const uint8_t _operatorOffsetTable[18];
 private:
 	typedef boost::scoped_ptr<DBOPL::Chip> ChipPtr;
 	ChipPtr _emulator;
@@ -57,6 +63,8 @@ private:
 	int32_t _samplesTillCallbackRemainder;
 
 	static void readSamples(void *userdata, Uint8 *buffer, int len);
+
+	uint8_t _registerBackUpTable[0x100];
 };
 
 #endif

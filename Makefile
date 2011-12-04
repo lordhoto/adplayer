@@ -21,7 +21,8 @@ DEPDIR:=.deps
 OBJS := \
 		adplayer.o \
 		dbopl.o \
-		music.o
+		music.o \
+		sfx.o
 
 DEPDIRS = $(addsuffix $(DEPDIR),$(sort $(dir $(OBJS))))
 

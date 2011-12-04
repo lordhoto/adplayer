@@ -33,8 +33,6 @@ protected:
 private:
 	void noteOff(uint8_t channel);
 	uint8_t findFreeChannel();
-	void setupChannel(uint8_t channel, uint16_t instrOffset);
-	void setupOperator(uint8_t opr, uint16_t &instrOffset);
 	void setupFrequency(uint8_t channel, int8_t frequency);
 	void setupRhythm(uint8_t rhythmInstr, uint16_t instrOffset);
 
@@ -55,7 +53,6 @@ private:
 	uint16_t _curOffset;
 	uint16_t _nextEventTimer;
 
-	static const uint8_t _operatorOffsetTable[18];
 	static const uint16_t _noteFrequencies[12];
 	static const uint8_t _mdvdrTable[6];
 	static const uint8_t _rhythmOperatorTable[6];
