@@ -154,8 +154,8 @@ Player::Player(const FileBuffer &file)
 }
 
 Player::~Player() {
-	SDL_LockAudio();
 	SDL_PauseAudio(1);
+	SDL_LockAudio();
 	SDL_CloseAudio();
 	SDL_UnlockAudio();
 }
@@ -198,7 +198,7 @@ void Player::readSamples(void *userdata, Uint8 *buffer, int len) {
 
 		const int32_t *src = tempBuffer;
 		for (int i = 0; i < samplesToRead; ++i)
-			*dst++ = *src++;
+			*dst++ = *src++ * 435 / 256;
 
 		len -= samplesToRead;
 		player->_samplesTillCallback -= samplesToRead;
