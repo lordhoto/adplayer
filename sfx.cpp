@@ -23,7 +23,7 @@
 #include <cstring>
 
 SfxPlayer::SfxPlayer(const FileBuffer &file)
-    : Player(file), _isPlaying(false), _timer(4) {
+    : Player(file), _isPlaying(false), _timer(4), _rndSeed(1) {
 	writeReg(0xBD, 0x00);
 
 	int startChannel = _file.at(1) * 3;
@@ -230,9 +230,8 @@ bool SfxPlayer::processNote(int note, int offset) {
 	if (_noteState[note] == 2) {
 		_noteSustainTimer[note] = _numStepsTable[_file.at(offset + 3) >> 4];
 
-		if (_file[offset] & 0x40) {
-			//XXX
-		}
+		if (_file[offset] & 0x40)
+			_noteSustainTimer[note] = (((getRnd() << 8) * _noteSustainTimer[note]) >> 16) + 1;
 	} else {
 		int timer1, timer2;
 		if (_noteState[note] == 3) {
@@ -339,6 +338,17 @@ bool SfxPlayer::processNoteEnvelope(int note, int &instrumentValue) {
 		return false;
 	else
 		return true;
+}
+
+uint8_t SfxPlayer::getRnd() {
+	if (_rndSeed & 1) {
+		_rndSeed >>= 1;
+		_rndSeed ^= 0xB8;
+	} else {
+		_rndSeed >>= 1;
+	}
+
+	return _rndSeed;
 }
 
 const uint8_t SfxPlayer::_noteBiasTable[7] = {

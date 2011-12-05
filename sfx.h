@@ -53,6 +53,9 @@ private:
 
 	uint8_t _instrumentData[11 * 7];
 
+	uint8_t _rndSeed;
+	uint8_t getRnd();
+
 	int _noteState[22];
 	int _notePlayTime[22];
 	int _noteSustainTimer[22];
