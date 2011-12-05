@@ -243,7 +243,7 @@ bool SfxPlayer::processNote(int note, int offset) {
 			timer2 = _file.at(offset + _noteState[note] + 1) & 0x0F;
 		}
 
-		int adjustValue = ((_noteAdjustTable[timer2] * _noteAdjustScaleTable[instrumentDataOffset]) >> 8) - noteInstrumentValue;
+		int adjustValue = ((_noteAdjustTable[timer2] * _noteAdjustScaleTable[instrumentDataOffset]) >> 16) - noteInstrumentValue;
 		setupNoteEnvelopeState(note, _numStepsTable[timer1], adjustValue);
 	}
 
