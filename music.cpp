@@ -91,6 +91,9 @@ void MusicPlayer::callback() {
 				_isPlaying = false;
 				return;
 			} else if (command == 88) {
+				// This is proposedly a debug information insertion. The CMS
+				// player code handles this differently, but is still using
+				// the same resources...
 				_curOffset += 5;
 			} else if (command == 81) {
 				uint16_t timing = _file.at(_curOffset + 2) | (_file.at(_curOffset + 1) << 8);
