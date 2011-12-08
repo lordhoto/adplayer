@@ -69,6 +69,9 @@ bool MusicPlayer::isPlaying() const {
 }
 
 void MusicPlayer::callback() {
+	if (!_isPlaying)
+		return;
+
 	_musicTimer += _musicTicks;
 	if (_musicTimer < _timerLimit)
 		return;
