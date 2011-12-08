@@ -25,6 +25,7 @@
 
 MusicPlayer::MusicPlayer(const FileBuffer &file)
     : Player(file) {
+	_timerLimit = 256 /* 473 for loom */;
 	_musicTicks = _file.at(3);
 	_loopFlag = (_file.at(4) == 0);
 	_musicLoopStart = readWord(5);
@@ -69,10 +70,10 @@ bool MusicPlayer::isPlaying() const {
 
 void MusicPlayer::callback() {
 	_musicTimer += _musicTicks;
-	if (_musicTimer <= 0xFF)
+	if (_musicTimer < _timerLimit)
 		return;
 
-	_musicTimer -= 0x100;
+	_musicTimer -= _timerLimit;
 
 	--_nextEventTimer;
 	if (_nextEventTimer)
@@ -87,7 +88,15 @@ void MusicPlayer::callback() {
 				_isPlaying = false;
 				return;
 			} else if (command == 88) {
-				_curOffset += 6;
+				_curOffset += 5;
+			} else if (command == 81) {
+				uint16_t timing = _file.at(_curOffset + 2) | (_file.at(_curOffset + 1) << 8);
+				_musicTicks = 0x73000 / timing;
+				command = _file.at(_curOffset++);
+				_curOffset += command;
+			} else {
+				command = _file.at(_curOffset++);
+				_curOffset += command;
 			}
 		} else {
 			if (command >= 0x90) {

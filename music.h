@@ -38,7 +38,8 @@ private:
 
 	bool _isPlaying;
 
-	uint8_t _musicTicks;
+	uint16_t _timerLimit;
+	uint16_t _musicTicks;
 	uint16_t _musicTimer;
 	bool _loopFlag;
 	uint16_t _musicLoopStart;
