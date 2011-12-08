@@ -23,10 +23,10 @@
 #include <cstring>
 #include <stdexcept>
 
-MusicPlayer::MusicPlayer(const FileBuffer &file)
-    : Player(file) {
-	_timerLimit = 256 /* 473 for loom */;
-	_musicTicks = _file.at(3) /* twice for loom */;
+MusicPlayer::MusicPlayer(const FileBuffer &file, const bool isLoom)
+    : Player(file), _isLoom(isLoom) {
+	_timerLimit = _isLoom ? 473 : 256;
+	_musicTicks = _file.at(3) * (_isLoom ? 2 : 1);
 	_loopFlag = (_file.at(4) == 0);
 	_musicLoopStart = readWord(5);
 
@@ -164,7 +164,7 @@ void MusicPlayer::callback() {
 		_nextEventTimer |= _file.at(_curOffset++);
 	}
 
-	_nextEventTimer >>= 1 /* 2 for loom */;
+	_nextEventTimer >>= _isLoom ? 2 : 1;
 	if (!_nextEventTimer)
 		_nextEventTimer = 1;
 }

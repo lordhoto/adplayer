@@ -25,7 +25,7 @@
 
 class MusicPlayer : public Player {
 public:
-	MusicPlayer(const FileBuffer &file);
+	MusicPlayer(const FileBuffer &file, const bool isLoom);
 
 	virtual bool isPlaying() const;
 protected:
@@ -36,6 +36,7 @@ private:
 	void setupFrequency(uint8_t channel, int8_t frequency);
 	void setupRhythm(uint8_t rhythmInstr, uint16_t instrOffset);
 
+	const bool _isLoom;
 	bool _isPlaying;
 
 	uint16_t _timerLimit;

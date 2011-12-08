@@ -34,8 +34,10 @@ void loadADFile(const std::string &filename, FileBuffer &data);
 void validateADFile(FileBuffer &data);
 
 int main(int argc, char *argv[]) {
-	if (argc != 2)
+	if (argc < 2)
 		return -1;
+
+	const bool isLoom = (argc >= 3 && argv[2][0] == 'l');
 
 	try {
 		FileBuffer data;
@@ -48,7 +50,7 @@ int main(int argc, char *argv[]) {
 			throw std::runtime_error("Could not initialize SDL audio subsystem");
 
 		if (data.at(2) == 0x80) {
-			MusicPlayer player(data);
+			MusicPlayer player(data, isLoom);
 			player.startPlayback();
 			while (player.isPlaying())
 				SDL_Delay(100);
