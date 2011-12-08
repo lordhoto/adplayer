@@ -26,7 +26,7 @@
 MusicPlayer::MusicPlayer(const FileBuffer &file)
     : Player(file) {
 	_timerLimit = 256 /* 473 for loom */;
-	_musicTicks = _file.at(3);
+	_musicTicks = _file.at(3) /* twice for loom */;
 	_loopFlag = (_file.at(4) == 0);
 	_musicLoopStart = readWord(5);
 
@@ -164,7 +164,7 @@ void MusicPlayer::callback() {
 		_nextEventTimer |= _file.at(_curOffset++);
 	}
 
-	_nextEventTimer >>= 1;
+	_nextEventTimer >>= 1 /* 2 for loom */;
 	if (!_nextEventTimer)
 		_nextEventTimer = 1;
 }
