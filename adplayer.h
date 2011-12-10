@@ -32,9 +32,10 @@ typedef std::vector<uint8_t> FileBuffer;
 class Player {
 public:
 	Player(const FileBuffer &file);
-	virtual ~Player();
+	virtual ~Player() {}
 
 	void startPlayback();
+	void stopPlayback();
 
 	virtual bool isPlaying() const = 0;
 protected:

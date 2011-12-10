@@ -63,11 +63,13 @@ int main(int argc, char *argv[]) {
 			player.startPlayback();
 			while (player.isPlaying())
 				SDL_Delay(100);
+			player.stopPlayback();
 		} else {
 			SfxPlayer player(data);
 			player.startPlayback();
 			while (player.isPlaying())
 				SDL_Delay(100);
+			player.stopPlayback();
 		}
 	} catch (const std::exception &e) {
 		std::fprintf(stderr,  "ERROR: %s\n", e.what());
@@ -164,15 +166,13 @@ Player::Player(const FileBuffer &file)
 	_samplesPerCallbackRemainder = _obtained.freq % _callbackFrequency;
 }
 
-Player::~Player() {
-	SDL_PauseAudio(1);
-	SDL_LockAudio();
-	SDL_CloseAudio();
-	SDL_UnlockAudio();
-}
-
 void Player::startPlayback() {
 	SDL_PauseAudio(0);
+}
+
+void Player::stopPlayback() {
+	SDL_PauseAudio(1);
+	SDL_CloseAudio();
 }
 
 void Player::writeReg(uint16_t reg, uint8_t data) {
