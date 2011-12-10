@@ -1,0 +1,18 @@
+adplayer is a program to play SCUMM v3/v4/v5 AdLib resource files.
+
+It allows the playback of AD resources of The Secret of Monkey Island, Loom and
+Indiana Jones and The Last Crusade.
+
+The usage is like this:
+    adplayer resource-dump
+
+For Loom v3 music resource one has to pass another option:
+    adplayer --loom resource-dump
+
+Libraries required for building:
+
+ - Boost (http://www.boost.org)
+ - SDL (http://www.libsdl.org)
+
+This program includes an AdLib emulator from DOSBox (http://www.dosbox.com).
+Thanks to them for their great emulator code, which is licensed under GPLv2+.
