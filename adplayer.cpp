@@ -24,25 +24,34 @@
 
 #include <stdexcept>
 #include <string>
+#include <cstring>
 #include <cstdio>
 #include <cstdlib>
-#include <iostream>
 #include <iterator>
 #include <algorithm>
 
 void loadADFile(const std::string &filename, FileBuffer &data);
 void validateADFile(FileBuffer &data);
 
-int main(int argc, char *argv[]) {
-	if (argc < 2)
-		return -1;
+void outputHelp() {
+	std::printf("Usage:\n"
+	            "\tadplayer [--loom] input-file\n"
+	            "\n"
+	            "\t    --loom        Switch for Loom v3 music files\n");
+}
 
-	const bool isLoom = (argc >= 3 && argv[2][0] == 'l');
+int main(int argc, char *argv[]) {
+	if (argc != 2 && argc != 3) {
+		outputHelp();
+		return -1;
+	}
+
+	const bool isLoom = (argc == 3 && !std::strcmp(argv[1], "--loom"));
 
 	try {
 		FileBuffer data;
 
-		std::string filename(argv[1]);
+		std::string filename(argc == 3 ? argv[2] : argv[1]);
 		loadADFile(filename, data);
 		validateADFile(data);
 
@@ -61,7 +70,7 @@ int main(int argc, char *argv[]) {
 				SDL_Delay(100);
 		}
 	} catch (const std::exception &e) {
-		std::cerr << "ERROR: " << e.what() << std::endl;
+		std::fprintf(stderr,  "ERROR: %s\n", e.what());
 		return -1;
 	}
 
