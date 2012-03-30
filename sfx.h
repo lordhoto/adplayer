@@ -56,17 +56,22 @@ private:
 	uint8_t _rndSeed;
 	uint8_t getRnd();
 
-	int _noteState[22];
-	int _notePlayTime[22];
-	int _noteSustainTimer[22];
-	int _noteInstrumentValue[22];
-	int _noteBias[22];
-	int _notePreIncrease[22];
-	int _noteAdjust[22];
-	int _noteEnvelopeStepIncrease[22];
-	int _noteEnvelopeStep[22];
-	int _noteEnvelopeStepCounter[22];
-	int _noteEnvelopeTimer[22];
+	struct Note {
+		int state;
+		int playTime;
+		int sustainTimer;
+		int instrumentValue;
+		int bias;
+		int preIncrease;
+		int adjust;
+		
+		struct Envelope {
+			int stepIncrease;
+			int step;
+			int stepCounter;
+			int timer;
+		} envelope;
+	} _notes[22];
 
 	static const uint8_t _noteBiasTable[7];
 	static const uint16_t _numStepsTable[16];

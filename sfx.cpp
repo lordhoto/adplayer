@@ -160,16 +160,16 @@ void SfxPlayer::updateSlot(int channel) {
 		const int note = channel * 2 + num;
 		bool updateNote = false;
 
-		if (_noteState[note] == 2) {
-			if (!--_noteSustainTimer[note])
+		if (_notes[note].state == 2) {
+			if (!--_notes[note].sustainTimer)
 				updateNote = true;
 		} else {
-			updateNote = processNoteEnvelope(note, _noteInstrumentValue[note]);
+			updateNote = processNoteEnvelope(note, _notes[note].instrumentValue);
 
-			if (_noteBias[note])
-				writeRegisterSpecial(note, _noteBias[note] - _noteInstrumentValue[note], curOffset);
+			if (_notes[note].bias)
+				writeRegisterSpecial(note, _notes[note].bias - _notes[note].instrumentValue, curOffset);
 			else
-				writeRegisterSpecial(note, _noteInstrumentValue[note], curOffset);
+				writeRegisterSpecial(note, _notes[note].instrumentValue, curOffset);
 		}
 
 		if (updateNote) {
@@ -182,12 +182,12 @@ void SfxPlayer::updateSlot(int channel) {
 					noteOffOn(channel);
 				}
 
-				_noteState[note] = -1;
+				_notes[note].state = -1;
 				processNote(note, curOffset);
 			}
 		}
 
-		if ((_file[curOffset] & 0x20) && !--_notePlayTime[note]) {
+		if ((_file[curOffset] & 0x20) && !--_notes[note].playTime) {
 			_channelCurrentOffset[channel] += 11;
 			_channelState[channel] = 1;
 		}
@@ -200,46 +200,46 @@ void SfxPlayer::parseNote(int channel, int num, int offset) {
 
 	if (_file.at(offset) & 0x80) {
 		const int note = channel * 2 + num;
-		_noteState[note] = -1;
+		_notes[note].state = -1;
 		processNote(note, offset);
-		_notePlayTime[note] = 0; 
+		_notes[note].playTime = 0; 
 
 		if (_file[offset] & 0x20) {
-			_notePlayTime[note] = (_file.at(offset + 4) >> 4) * 118;
-			_notePlayTime[note] += (_file[offset + 4] & 0x0F) * 8;
+			_notes[note].playTime = (_file.at(offset + 4) >> 4) * 118;
+			_notes[note].playTime += (_file[offset + 4] & 0x0F) * 8;
 		}
 	}
 }
 
 bool SfxPlayer::processNote(int note, int offset) {
-	if (++_noteState[note] == 4)
+	if (++_notes[note].state == 4)
 		return true;
 
 	const int instrumentDataOffset = _file.at(offset) & 0x07;
-	_noteBias[note] = _noteBiasTable[instrumentDataOffset];
+	_notes[note].bias = _noteBiasTable[instrumentDataOffset];
 
 	uint8_t instrumentDataValue = 0;
-	if (_noteState[note] == 0)
+	if (_notes[note].state == 0)
 		instrumentDataValue = _instrumentData[(note / 2) * 7 + instrumentDataOffset];
 
 	uint8_t noteInstrumentValue = readRegisterSpecial(note, instrumentDataValue, instrumentDataOffset);
-	if (_noteBias[note])
-		noteInstrumentValue = _noteBias[note] - noteInstrumentValue;
-	_noteInstrumentValue[note] = noteInstrumentValue;
+	if (_notes[note].bias)
+		noteInstrumentValue = _notes[note].bias - noteInstrumentValue;
+	_notes[note].instrumentValue = noteInstrumentValue;
 
-	if (_noteState[note] == 2) {
-		_noteSustainTimer[note] = _numStepsTable[_file.at(offset + 3) >> 4];
+	if (_notes[note].state == 2) {
+		_notes[note].sustainTimer = _numStepsTable[_file.at(offset + 3) >> 4];
 
 		if (_file[offset] & 0x40)
-			_noteSustainTimer[note] = (((getRnd() << 8) * _noteSustainTimer[note]) >> 16) + 1;
+			_notes[note].sustainTimer = (((getRnd() << 8) * _notes[note].sustainTimer) >> 16) + 1;
 	} else {
 		int timer1, timer2;
-		if (_noteState[note] == 3) {
+		if (_notes[note].state == 3) {
 			timer1 = _file.at(offset + 3) & 0x0F;
 			timer2 = 0;
 		} else {
-			timer1 = _file.at(offset + _noteState[note] + 1) >> 4;
-			timer2 = _file.at(offset + _noteState[note] + 1) & 0x0F;
+			timer1 = _file.at(offset + _notes[note].state + 1) >> 4;
+			timer2 = _file.at(offset + _notes[note].state + 1) & 0x0F;
 		}
 
 		int adjustValue = ((_noteAdjustTable[timer2] * _noteAdjustScaleTable[instrumentDataOffset]) >> 16) - noteInstrumentValue;
@@ -305,36 +305,36 @@ uint8_t SfxPlayer::readRegisterSpecial(int note, uint8_t defaultValue, int offse
 }
 
 void SfxPlayer::setupNoteEnvelopeState(int note, int steps, int adjust) {
-	_notePreIncrease[note] = 0;
+	_notes[note].preIncrease = 0;
 	if (std::abs(adjust) > steps) {
-		_notePreIncrease[note] = 1;
-		_noteAdjust[note] = adjust / steps;
-		_noteEnvelopeStepIncrease[note] = std::abs(adjust % steps);
+		_notes[note].preIncrease = 1;
+		_notes[note].adjust = adjust / steps;
+		_notes[note].envelope.stepIncrease = std::abs(adjust % steps);
 	} else {
-		_noteAdjust[note] = adjust;
-		_noteEnvelopeStepIncrease[note] = std::abs(adjust);
+		_notes[note].adjust = adjust;
+		_notes[note].envelope.stepIncrease = std::abs(adjust);
 	}
 
-	_noteEnvelopeStep[note] = steps;
-	_noteEnvelopeStepCounter[note] = 0;
-	_noteEnvelopeTimer[note] = steps;
+	_notes[note].envelope.step = steps;
+	_notes[note].envelope.stepCounter = 0;
+	_notes[note].envelope.timer = steps;
 }
 
 bool SfxPlayer::processNoteEnvelope(int note, int &instrumentValue) {
-	if (_notePreIncrease[note])
-		instrumentValue += _noteAdjust[note];
+	if (_notes[note].preIncrease)
+		instrumentValue += _notes[note].adjust;
 
-	_noteEnvelopeStepCounter[note] += _noteEnvelopeStepIncrease[note];
-	if (_noteEnvelopeStepCounter[note] >= _noteEnvelopeStep[note]) {
-		_noteEnvelopeStepCounter[note] -= _noteEnvelopeStep[note];
+	_notes[note].envelope.stepCounter += _notes[note].envelope.stepIncrease;
+	if (_notes[note].envelope.stepCounter >= _notes[note].envelope.step) {
+		_notes[note].envelope.stepCounter -= _notes[note].envelope.step;
 
-		if (_noteAdjust[note] < 0)
+		if (_notes[note].adjust < 0)
 			--instrumentValue;
 		else
 			++instrumentValue;
 	}
 
-	if (--_noteEnvelopeTimer[note])
+	if (--_notes[note].envelope.timer)
 		return false;
 	else
 		return true;
