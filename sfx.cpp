@@ -29,17 +29,14 @@ SfxPlayer::SfxPlayer(const FileBuffer &file)
 	int startChannel = _file.at(1) * 3;
 	// byte 0 is the priority of the SFX
 
-	std::memset(_channelState, 0, sizeof(_channelState));
-	_channelState[startChannel+0] = 0;
-	_channelState[startChannel+1] = 0;
-	_channelState[startChannel+2] = 0;
+	std::memset(_channels, 0, sizeof(_channels));
 
 	clearChannel(startChannel+0);
 	clearChannel(startChannel+1);
 	clearChannel(startChannel+2);
 
-	_channelCurrentOffset[startChannel] = _channelStartOffset[startChannel] = 2;
-	_channelState[startChannel] = 1;
+	_channels[startChannel].currentOffset = _channels[startChannel].startOffset = 2;
+	_channels[startChannel].state = 1;
 
 	int curChannel = startChannel + 1;
 	int bufferPosition = 2;
@@ -60,9 +57,9 @@ SfxPlayer::SfxPlayer(const FileBuffer &file)
 
 		default:
 			bufferPosition += 1;
-			_channelCurrentOffset[curChannel] = bufferPosition;
-			_channelStartOffset[curChannel] = bufferPosition;
-			_channelState[curChannel] = 1;
+			_channels[curChannel].currentOffset = bufferPosition;
+			_channels[curChannel].startOffset = bufferPosition;
+			_channels[curChannel].state = 1;
 			++curChannel;
 			break;
 		}
@@ -83,7 +80,7 @@ void SfxPlayer::callback() {
 	bool stillPlaying = false;
 
 	for (int i = 0; i <= 9; ++i) {
-		if (!_channelState[i])
+		if (!_channels[i].state)
 			continue;
 
 		stillPlaying = true;
@@ -99,7 +96,7 @@ void SfxPlayer::clearChannel(int channel) {
 }
 
 void SfxPlayer::updateChannel(int channel) {
-	if (_channelState[channel] == 1)
+	if (_channels[channel].state == 1)
 		parseSlot(channel);
 	else
 		updateSlot(channel);
@@ -107,42 +104,42 @@ void SfxPlayer::updateChannel(int channel) {
 
 void SfxPlayer::parseSlot(int channel) {
 	while (true) {
-		int curOffset = _channelCurrentOffset[channel];
+		int curOffset = _channels[channel].currentOffset;
 
 		switch (_file.at(curOffset)) {
 		case 1:
 			++curOffset;
-			_instrumentData[channel * 7 + 0] = _file.at(curOffset + 0);
-			_instrumentData[channel * 7 + 1] = _file.at(curOffset + 2);
-			_instrumentData[channel * 7 + 2] = _file.at(curOffset + 9);
-			_instrumentData[channel * 7 + 3] = _file.at(curOffset + 8);
-			_instrumentData[channel * 7 + 4] = _file.at(curOffset + 4);
-			_instrumentData[channel * 7 + 5] = _file.at(curOffset + 3);
-			_instrumentData[channel * 7 + 6] = 0;
+			_channels[channel].instrumentData[0] = _file.at(curOffset + 0);
+			_channels[channel].instrumentData[1] = _file.at(curOffset + 2);
+			_channels[channel].instrumentData[2] = _file.at(curOffset + 9);
+			_channels[channel].instrumentData[3] = _file.at(curOffset + 8);
+			_channels[channel].instrumentData[4] = _file.at(curOffset + 4);
+			_channels[channel].instrumentData[5] = _file.at(curOffset + 3);
+			_channels[channel].instrumentData[6] = 0;
 
 			setupChannel(channel, curOffset);
 
 			writeReg(0xA0 + channel, _file.at(curOffset + 0));
 			writeReg(0xB0 + channel, _file.at(curOffset + 1) & 0xDF);
 
-			_channelCurrentOffset[channel] += 15;
+			_channels[channel].currentOffset += 15;
 			break;
 
 		case 2:
 			++curOffset;
-			_channelState[channel] = 2;
+			_channels[channel].state = 2;
 			noteOffOn(channel);
 			parseNote(channel, 0, curOffset);
 			parseNote(channel, 1, curOffset);
 			return;
 
 		case 0x80:
-			_channelCurrentOffset[channel] = _channelStartOffset[channel];
+			_channels[channel].currentOffset = _channels[channel].startOffset;
 			break;
 
 		default:
 			clearChannel(channel);
-			_channelState[channel] = 0;
+			_channels[channel].state = 0;
 			// The original had logic to unlock the sound here, if all sfx
 			// channels were unused.
 			return;
@@ -151,7 +148,7 @@ void SfxPlayer::parseSlot(int channel) {
 }
 
 void SfxPlayer::updateSlot(int channel) {
-	int curOffset = _channelCurrentOffset[channel] + 1;
+	int curOffset = _channels[channel].currentOffset + 1;
 
 	for (int num = 0; num <= 1; ++num, curOffset += 5) {
 		if (!(_file.at(curOffset) & 0x80))
@@ -175,8 +172,8 @@ void SfxPlayer::updateSlot(int channel) {
 		if (updateNote) {
 			if (processNote(note, curOffset)) {
 				if (!(_file[curOffset] & 0x08)) {
-					_channelCurrentOffset[channel] += 11;
-					_channelState[channel] = 1;
+					_channels[channel].currentOffset += 11;
+					_channels[channel].state = 1;
 					continue;
 				} else if (_file[curOffset] & 0x10) {
 					noteOffOn(channel);
@@ -188,8 +185,8 @@ void SfxPlayer::updateSlot(int channel) {
 		}
 
 		if ((_file[curOffset] & 0x20) && !--_notes[note].playTime) {
-			_channelCurrentOffset[channel] += 11;
-			_channelState[channel] = 1;
+			_channels[channel].currentOffset += 11;
+			_channels[channel].state = 1;
 		}
 	}
 }
@@ -220,7 +217,7 @@ bool SfxPlayer::processNote(int note, int offset) {
 
 	uint8_t instrumentDataValue = 0;
 	if (_notes[note].state == 0)
-		instrumentDataValue = _instrumentData[(note / 2) * 7 + instrumentDataOffset];
+		instrumentDataValue = _channels[note / 2].instrumentData[instrumentDataOffset];
 
 	uint8_t noteInstrumentValue = readRegisterSpecial(note, instrumentDataValue, instrumentDataOffset);
 	if (_notes[note].bias)

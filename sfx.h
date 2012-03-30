@@ -47,11 +47,12 @@ private:
 
 	int _timer;
 
-	int _channelState[11];
-	int _channelCurrentOffset[11];
-	int _channelStartOffset[11];
-
-	uint8_t _instrumentData[11 * 7];
+	struct Channel {
+		int state;
+		int currentOffset;
+		int startOffset;
+		uint8_t instrumentData[7];
+	} _channels[11];
 
 	uint8_t _rndSeed;
 	uint8_t getRnd();
