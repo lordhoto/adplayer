@@ -257,14 +257,13 @@ void SfxPlayer::writeRegisterSpecial(int note, uint8_t value, int offset) {
 	if (dataOffset == 6)
 		return;
 
-	note &= 0xFE;
+	note /= 2;
 
 	uint8_t regNum;
 	if (_useOperatorTable[dataOffset])
-		// This looks like a possible out of bounds read...
-		regNum = _operatorOffsetTable[_channelOperatorOffsetTable[dataOffset] + note];
+		regNum = _operatorOffsetTable[_channelOperatorOffsetTable[dataOffset] + note * 2];
 	else
-		regNum = _channelOffsetTable[note / 2];
+		regNum = _channelOffsetTable[note];
 
 	regNum += _baseRegisterTable[dataOffset];
 
@@ -278,14 +277,13 @@ uint8_t SfxPlayer::readRegisterSpecial(int note, uint8_t defaultValue, int offse
 	if (offset == 6)
 		return 0;
 
-	note &= 0xFE;
+	note /= 2;
 
 	uint8_t regNum;
 	if (_useOperatorTable[offset])
-		// This looks like a possible out of bounds read...
-		regNum = _operatorOffsetTable[_channelOperatorOffsetTable[offset] + note];
+		regNum = _operatorOffsetTable[_channelOperatorOffsetTable[offset] + note * 2];
 	else
-		regNum = _channelOffsetTable[note / 2];
+		regNum = _channelOffsetTable[note];
 
 	regNum += _baseRegisterTable[offset];
 
